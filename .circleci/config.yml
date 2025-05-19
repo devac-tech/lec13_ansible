@@ -54,6 +54,11 @@ jobs:
             echo "User ec2-user" >> ~/.ssh/config
             echo "StrictHostKeyChecking no" >> ~/.ssh/config
       - run:
+          name: Debug spec directory
+          command: |
+            ls -la serverspec/spec/
+            ls -la serverspec/spec/target
+      - run:
           name: Setup Serverspec
           command: |
             cd serverspec
