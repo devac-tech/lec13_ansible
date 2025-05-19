@@ -120,7 +120,7 @@ Resources:
         - IpProtocol: tcp
           FromPort: 22
           ToPort: 22
-          SourceSecurityGroupId: !Ref ControlNodeSG
+          CidrIp: 0.0.0.0/0
           Description: Allow SSH from Ansible ControlNode
       SecurityGroupEgress:
         - IpProtocol: -1
@@ -130,16 +130,16 @@ Resources:
           Value: !Sub "${NameKeyPrefix}-sg"
 
   # EC2インスタンスの定義
-  ControlNodeEIP:
+  TargetNodeEIP:
     Type: AWS::EC2::EIP
     Properties:
       Domain: vpc
 
-  ControlNodeEIPAssociation:
+  TargetNodeEIPAssociation:
     Type: AWS::EC2::EIPAssociation
     Properties:
-      InstanceId: !Ref ControlNode
-      AllocationId: !GetAtt ControlNodeEIP.AllocationId
+      InstanceId: !Ref TargetNode
+      AllocationId: !GetAtt TargetNodeEIP.AllocationId
 
   # EC2インスタンスの定義
   ControlNode:
