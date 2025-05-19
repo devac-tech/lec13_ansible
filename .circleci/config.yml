@@ -24,6 +24,18 @@ jobs:
             aws cloudformation deploy \
               --template cloudformation/control_node.yml \
               --stack-name webServiceStack
+  execution-ansible:
+    executor: ansible-playbook/default
+    steps:
+      - checkout
+      - add_ssh_keys:
+          fingerprints:
+            - "SHA256:MfFRPirALrmTRAdw/j+bF6ghu9kvK3WI2JdrdMSSOlo"
+      - ansible-playbook/install:
+          version: 2.10.7
+      - ansible-playbook/playbook:
+          playbook: ansible/playbook.yml
+          playbook-options: -i ansible/inventory
 
 # Orchestrate jobs using workflows
 # See: https://circleci.com/docs/configuration-reference/#workflows
@@ -31,3 +43,6 @@ workflows:
   circleci-lec00-workflow:
     jobs:
       - execution-cloudformation
+      - execution-ansible:
+          requires:
+            - execution-cloudformation

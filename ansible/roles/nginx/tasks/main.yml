@@ -1,0 +1,24 @@
+# tasks file for nginx
+
+- name: Check if nginx1 is already enabled
+  shell: "amazon-linux-extras list"
+  register: amazon_linux_extras_list
+  changed_when: false
+  become: yes
+
+- name: Debug amazon-linux-extras list output
+  debug:
+    msg: "{{ amazon_linux_extras_list.stdout }}"
+
+- name: Enable to install NGINX.
+  shell: "amazon-linux-extras enable nginx1"
+  become: yes
+  # when: amazon_linux_extras_list.stdout is search("nginx1=latest\\s+enabled")
+  # when: "'nginx1=latest enabled' in amazon_linux_extras_list.stdout | regex_replace('\\s+', ' ')"
+  when: "'nginx1=latest' not in amazon_linux_extras_list.stdout"
+
+- name: Install nginx
+  yum:
+    name: nginx
+    state: present
+  become: yes
