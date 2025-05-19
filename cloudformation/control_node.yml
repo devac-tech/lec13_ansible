@@ -130,6 +130,18 @@ Resources:
           Value: !Sub "${NameKeyPrefix}-sg"
 
   # EC2インスタンスの定義
+  TargetNodeEIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+
+  TargetNodeEIPAssociation:
+    Type: AWS::EC2::EIPAssociation
+    Properties:
+      InstanceId: !Ref TargetNode
+      AllocationId: !GetAtt TargetNodeEIP.AllocationId
+
+  # EC2インスタンスの定義
   ControlNode:
     Type: AWS::EC2::Instance
     Properties:
