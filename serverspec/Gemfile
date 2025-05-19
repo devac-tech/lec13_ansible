@@ -1,0 +1,6 @@
+source 'https://rubygems.org'
+
+gem 'serverspec'
+gem 'rake'
+gem 'net-ssh'         # SSH通信のため
+gem 'specinfra'       # インフラ検証のためのライブラリ

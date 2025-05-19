@@ -10,39 +10,71 @@ orbs:
 # Define a job to be invoked later in a workflow.
 # See: https://circleci.com/docs/configuration-reference/#jobs
 jobs:
-  execution-cloudformation:
-    executor: aws-cli/default
+  # execution-cloudformation:
+  #   executor: aws-cli/default
+  #   steps:
+  #     - checkout
+  #     - aws-cli/setup:
+  #         aws_access_key_id: AWS_ACCESS_KEY_ID
+  #         aws_secret_access_key: AWS_SECRET_ACCESS_KEY
+  #         region: AWS_DEFAULT_REGION
+  #     - run:
+  #         name: deploy CloudFormation
+  #         command: |
+  #           aws cloudformation deploy \
+  #             --template cloudformation/control_node.yml \
+  #             --stack-name webServiceStack
+  # execution-ansible:
+  #   executor: ansible-playbook/default
+  #   steps:
+  #     - checkout
+  #     - add_ssh_keys:
+  #         fingerprints:
+  #           - "SHA256:MfFRPirALrmTRAdw/j+bF6ghu9kvK3WI2JdrdMSSOlo"
+  #     - ansible-playbook/install:
+  #         version: 2.10.7
+  #     - ansible-playbook/playbook:
+  #         playbook: ansible/playbook.yml
+  #         playbook-options: -i ansible/inventory
+  execute-serverspec:
+    executor: ruby/default
     steps:
       - checkout
-      - aws-cli/setup:
-          aws_access_key_id: AWS_ACCESS_KEY_ID
-          aws_secret_access_key: AWS_SECRET_ACCESS_KEY
-          region: AWS_DEFAULT_REGION
-      - run:
-          name: deploy CloudFormation
-          command: |
-            aws cloudformation deploy \
-              --template cloudformation/control_node.yml \
-              --stack-name webServiceStack
-  execution-ansible:
-    executor: ansible-playbook/default
-    steps:
-      - checkout
+      - ruby/install:
+          version: 3.2.3
       - add_ssh_keys:
           fingerprints:
             - "SHA256:MfFRPirALrmTRAdw/j+bF6ghu9kvK3WI2JdrdMSSOlo"
-      - ansible-playbook/install:
-          version: 2.10.7
-      - ansible-playbook/playbook:
-          playbook: ansible/playbook.yml
-          playbook-options: -i ansible/inventory
+      - run:
+          name: Set ~/.ssh/config
+          command: |
+            mkdir -p ~/.ssh
+            echo "Host target" >> ~/.ssh/config
+            echo "HostName 52.198.173.234" >> ~/.ssh/config
+            echo "User ec2-user" >> ~/.ssh/config
+            echo "StrictHostKeyChecking no" >> ~/.ssh/config
+      - run:
+          name: Setup Serverspec
+          command: |
+            cd serverspec
+            bundle install
+      - run:
+          name: Execute Serverspec
+          command: |
+            cd serverspec
+            export TARGET_HOST=52.198.173.234
+            bundle exec rake spec
 
 # Orchestrate jobs using workflows
 # See: https://circleci.com/docs/configuration-reference/#workflows
 workflows:
   circleci-lec00-workflow:
     jobs:
-      - execution-cloudformation
-      - execution-ansible:
-          requires:
-            - execution-cloudformation
+      - execute-serverspec
+      # - execution-cloudformation
+      # - execution-ansible:
+      #     requires:
+      #       - execution-cloudformation
+      # - execute-serverspec:
+      #     requires:
+      #       - execution-ansible
