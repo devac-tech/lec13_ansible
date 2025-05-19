@@ -102,7 +102,7 @@ Resources:
         - IpProtocol: tcp
           FromPort: 22
           ToPort: 22
-          CidrIp: 3.112.0.0/14
+          CidrIp: 0.0.0.0/0
           Description: connection from my home router
       SecurityGroupEgress:
         - IpProtocol: -1
