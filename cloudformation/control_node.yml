@@ -120,7 +120,7 @@ Resources:
         - IpProtocol: tcp
           FromPort: 22
           ToPort: 22
-          SourceSecurityGroupId: !Ref ControlNodeSG
+          CidrIp: 0.0.0.0/0
           Description: Allow SSH from Ansible ControlNode
       SecurityGroupEgress:
         - IpProtocol: -1
