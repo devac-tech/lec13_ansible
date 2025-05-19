@@ -1,0 +1,187 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: "ControllNode用のスタック"
+
+# Parameters
+Parameters:
+  NameKeyPrefix:
+    Description: this is base name.
+    Type: String
+    Default: "lec13"
+
+# AWSの各リソースの定義
+Resources:
+  # VPCの定義
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${NameKeyPrefix}-vpc"
+
+  # サブネットの定義
+  PublicSubnet1aLec13:
+    Type: AWS::EC2::Subnet
+    Properties:
+      CidrBlock: 10.0.0.0/24
+      AvailabilityZone: ap-northeast-1a
+      VpcId: !Ref VPC
+      # サブネット単位でiPv4パブリックアドレスの割り当てを有効化
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${NameKeyPrefix}-public-subnet-1a"
+
+  PublicSubnet1cLec13:
+    Type: AWS::EC2::Subnet
+    Properties:
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: ap-northeast-1c
+      VpcId: !Ref VPC
+      # サブネット単位でiPv4パブリックアドレスの割り当てを有効化
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${NameKeyPrefix}-public-subnet-1c"
+
+  # インターネットゲートウェイの定義
+  Igw:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub "${NameKeyPrefix}-igw"
+
+  # VPCGatewayAttachment定義
+  VpcGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref Igw
+
+  # ルートテーブルの定義
+  RouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub "${NameKeyPrefix}-route-table"
+
+  # サブネットとルートテーブルの関連付け
+  SubnetRouteTable1a:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet1aLec13
+      RouteTableId: !Ref RouteTable
+
+  SubnetRouteTable1c:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet1cLec13
+      RouteTableId: !Ref RouteTable
+
+  # インターネットゲートウェイとルートテーブルの関連付け
+  TableWithIgw:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref RouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref Igw
+
+  # セキュリティグループの定義
+  ControlNodeSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref VPC
+      GroupDescription: This Security Group is for iPadDev
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 61.125.86.147/32
+          Description: connection from my home router
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: !Sub "${NameKeyPrefix}-sg"
+
+  TargetSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref VPC
+      GroupDescription: This Security Group is for Ansible Target Node
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          SourceSecurityGroupId: !Ref ControlNodeSG
+          Description: Allow SSH from Ansible ControlNode
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: !Sub "${NameKeyPrefix}-sg"
+
+  # EC2インスタンスの定義
+  ControlNode:
+    Type: AWS::EC2::Instance
+    Properties:
+      SubnetId: !Ref PublicSubnet1aLec13
+      InstanceType: t2.medium
+      AvailabilityZone: ap-northeast-1a
+      KeyName: id_rsa_aws_from_m1_win
+      Monitoring: false
+      # ここのAMIはマネジメントコンソールから確認可能
+      # 中身はAmazon Linux2
+      ImageId: ami-00f045aed21a55240
+      InstanceInitiatedShutdownBehavior: stop
+      SecurityGroupIds:
+        - !Ref ControlNodeSG
+      UserData:
+        Fn::Base64: |
+          #!/bin/bash
+          sudo yum update -y
+          sudo amazon-linux-extras install -y ansible2
+          # sudo yum install -y java-1.8.0-openjdk-devel.x86_64
+          # sudo wget -O /etc/yum.repos.d/jenkins.repo https://pkg.jenkins.io/redhat/jenkins.repo
+          # sudo rpm --import https://pkg.jenkins.io/redhat/jenkins.io.key
+          # sudo yum install -y jenkins git
+          # sudo service jenkins start
+      Tags:
+        - Key: Name
+          Value: !Sub "${NameKeyPrefix}-ControlNode"
+
+  TargetNode:
+    Type: AWS::EC2::Instance
+    Properties:
+      SubnetId: !Ref PublicSubnet1cLec13
+      InstanceType: t2.medium
+      AvailabilityZone: ap-northeast-1c
+      KeyName: id_rsa_aws_from_m1_win
+      Monitoring: false
+      # ここのAMIはマネジメントコンソールから確認可能
+      # 中身はAmazon Linux2
+      ImageId: ami-00f045aed21a55240
+      InstanceInitiatedShutdownBehavior: stop
+      SecurityGroupIds:
+        - !Ref TargetSG
+      UserData:
+        Fn::Base64: |
+          #!/bin/bash
+          sudo yum update -y
+          # sudo amazon-linux-extras install -y ansible2
+          # sudo yum install -y java-1.8.0-openjdk-devel.x86_64
+          # sudo wget -O /etc/yum.repos.d/jenkins.repo https://pkg.jenkins.io/redhat/jenkins.repo
+          # sudo rpm --import https://pkg.jenkins.io/redhat/jenkins.io.key
+          # sudo yum install -y jenkins git
+          # sudo service jenkins start
+      Tags:
+        - Key: Name
+          Value: !Sub "${NameKeyPrefix}-TargetNode"
