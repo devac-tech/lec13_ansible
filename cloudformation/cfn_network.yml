@@ -1,0 +1,186 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: create VPC
+
+Parameters:
+  PJName:
+    Type: String
+    Default: "aws-lecture13-ci"
+
+  TagKey:
+    Description: key for cost allocation tags
+    Type: String
+    Default: "RaiseTech"
+
+Resources:
+  # ------------------------------------------------------------#
+  #  VPC
+  # ------------------------------------------------------------#
+  CfnCIVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: "10.0.0.0/16"
+      Tags:
+        - Key: Name
+          Value: !Sub "${PJName}-vpc"
+        - Key: !Ref TagKey
+          Value: !Ref PJName
+
+  # ------------------------------------------------------------#
+  #  InternetGateway
+  # ------------------------------------------------------------#
+  CfnCIInternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub "${PJName}-igw"
+        - Key: !Ref TagKey
+          Value: !Ref PJName
+
+  CfnCIInternetGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref CfnCIInternetGateway
+      VpcId: !Ref CfnCIVPC
+
+  # ------------------------------------------------------------#
+  #  Subnet
+  # ------------------------------------------------------------#
+  CfnCIPublicSubnet1A:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select
+        - 0
+        - Fn::GetAZs: !Ref AWS::Region
+      CidrBlock: 10.0.0.0/20
+      VpcId: !Ref CfnCIVPC
+      Tags:
+        - Key: Name
+          Value: !Sub "${PJName}-public-subnet-1a"
+        - Key: !Ref TagKey
+          Value: !Ref PJName
+
+  CfnCIPublicSubnet1C:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select
+        - 1
+        - Fn::GetAZs: !Ref AWS::Region
+      CidrBlock: 10.0.16.0/20
+      VpcId: !Ref CfnCIVPC
+      Tags:
+        - Key: Name
+          Value: !Sub "${PJName}-public-subnet-1c"
+        - Key: !Ref TagKey
+          Value: !Ref PJName
+
+  CfnCIPrivateSubnet1A:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select
+        - 0
+        - Fn::GetAZs: !Ref AWS::Region
+      CidrBlock: 10.0.128.0/20
+      VpcId: !Ref CfnCIVPC
+      Tags:
+        - Key: Name
+          Value: !Sub "${PJName}-private-subnet-1a"
+        - Key: !Ref TagKey
+          Value: !Ref PJName
+
+  CfnCIPrivateSubnet1C:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select
+        - 1
+        - Fn::GetAZs: !Ref AWS::Region
+      CidrBlock: 10.0.144.0/20
+      VpcId: !Ref CfnCIVPC
+      Tags:
+        - Key: Name
+          Value: !Sub "${PJName}-private-subnet-1c"
+        - Key: !Ref TagKey
+          Value: !Ref PJName
+
+  # ------------------------------------------------------------#
+  #  RouteTable
+  # ------------------------------------------------------------#
+  CfnCIPublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref CfnCIVPC
+      Tags:
+        - Key: Name
+          Value: !Sub "${PJName}-public-route-table"
+        - Key: !Ref TagKey
+          Value: !Ref PJName
+
+  CfnCIPrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref CfnCIVPC
+      Tags:
+        - Key: Name
+          Value: !Sub "${PJName}-private-route-table"
+        - Key: !Ref TagKey
+          Value: !Ref PJName
+
+  CfnCIPublicRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref CfnCIPublicRouteTable
+      DestinationCidrBlock: "0.0.0.0/0"
+      GatewayId: !Ref CfnCIInternetGateway
+
+  CfnCIPublicSubnetRouteTableAssociation1A:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref CfnCIPublicSubnet1A
+      RouteTableId: !Ref CfnCIPublicRouteTable
+
+  CfnCIPublicSubnetRouteTableAssociation1C:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref CfnCIPublicSubnet1C
+      RouteTableId: !Ref CfnCIPublicRouteTable
+
+  CfnCIPrivateSubnetRouteTableAssociation1A:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref CfnCIPrivateSubnet1A
+      RouteTableId: !Ref CfnCIPrivateRouteTable
+
+  CfnCIPrivateSubnetRouteTableAssociation1C:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref CfnCIPrivateSubnet1C
+      RouteTableId: !Ref CfnCIPrivateRouteTable
+
+# ------------------------------------------------------------#
+#  Outputs
+# ------------------------------------------------------------#
+Outputs:
+  CfnCIVPC:
+    Value: !Ref CfnCIVPC
+    Export:
+      Name: CfnCIVPC-ID
+
+  CfnCIPublicSubnet1A:
+    Value: !Ref CfnCIPublicSubnet1A
+    Export:
+      Name: CfnCIPublicSubnet1A-ID
+
+  CfnCIPublicSubnet1C:
+    Value: !Ref CfnCIPublicSubnet1C
+    Export:
+      Name: CfnCIPublicSubnet1C-ID
+
+  CfnCIPrivateSubnet1A:
+    Value: !Ref CfnCIPrivateSubnet1A
+    Export:
+      Name: CfnCIPrivateSubnet1A-ID
+
+  CfnCIPrivateSubnet1C:
+    Value: !Ref CfnCIPrivateSubnet1C
+    Export:
+      Name: CfnCIPrivateSubnet1C-ID

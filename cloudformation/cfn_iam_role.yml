@@ -1,0 +1,44 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: create IAM role
+
+Parameters:
+  PJName:
+    Type: String
+    Default: "aws-lecture13-ci"
+
+  TagKey:
+    Description: key for cost allocation tags
+    Type: String
+    Default: "RaiseTech"
+
+Resources:
+  # ------------------------------------------------------------#
+  #  IAM Role
+  # ------------------------------------------------------------#
+  CfnCIS3AccessRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName: !Sub "${PJName}-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "ec2.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+      Tags:
+        - Key: !Ref TagKey
+          Value: !Ref PJName
+
+# ------------------------------------------------------------#
+#  Outputs
+# ------------------------------------------------------------#
+Outputs:
+  CfnCIS3AccessRole:
+    Value: !Ref CfnCIS3AccessRole
+    Export:
+      Name: CfnCIS3AccessRole-role-name

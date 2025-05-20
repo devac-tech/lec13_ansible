@@ -2,28 +2,50 @@
 # See: https://circleci.com/docs/configuration-reference
 version: 2.1
 
+# 参考：https://circleci.com/developer/ja/orbs/orb/circleci/aws-cli
 orbs:
-  aws-cli: circleci/aws-cli@4.1.1
+  python: circleci/python@2.0.3
+  aws-cli: circleci/aws-cli@5.2.0
   ansible-playbook: orbss/ansible-playbook@0.0.5
-  ruby: circleci/ruby@2.1.0
+  ruby: circleci/ruby@2.3.1
 
 # Define a job to be invoked later in a workflow.
-# See: https://circleci.com/docs/configuration-reference/#jobs
+# See: https://circleci.com/docs/jobs-steps/#jobs-overview & https://circleci.com/docs/configuration-reference/#jobs
 jobs:
-  # execution-cloudformation:
-  #   executor: aws-cli/default
-  #   steps:
-  #     - checkout
-  #     - aws-cli/setup:
-  #         aws_access_key_id: AWS_ACCESS_KEY_ID
-  #         aws_secret_access_key: AWS_SECRET_ACCESS_KEY
-  #         region: AWS_DEFAULT_REGION
-  #     - run:
-  #         name: deploy CloudFormation
-  #         command: |
-  #           aws cloudformation deploy \
-  #             --template cloudformation/control_node.yml \
-  #             --stack-name webServiceStack
+  cfn-lint:
+    # テンプレートの構文や構成チェックを行う自動Lint処理
+    executor: python/default
+    steps:
+      - checkout
+      - run: pip install cfn-lint
+      - run:
+          name: run cfn-lint
+          command: |
+            cfn-lint -i W3002 -t cloudformation/*.yml
+
+  execute-cloudformation:
+    # orbs使う時はexecutorとする
+    executor: aws-cli/default
+    steps:
+      # Checkout the code as the first step.
+      - checkout
+      # https://circleci.com/developer/ja/orbs/orb/circleci/aws-cli のsetupを使う
+      - aws-cli/setup:
+          # 下記の環境変数はcircleci実行時に設定する
+          aws_access_key_id: AWS_ACCESS_KEY_ID
+          aws_secret_access_key: AWS_SECRET_ACCESS_KEY
+          region: AWS_DEFAULT_REGION
+      - run:
+          name: Deploy to aws from template
+          command: |
+            set -x
+            aws cloudformation deploy --template-file cloudformation/cfn_network.yml \
+              --stack-name raisetech-aws-lecture13-ci-network
+            aws cloudformation deploy --template-file cloudformation/cfn_iam_role.yml \
+              --stack-name raisetech-aws-lecture13-ci-iam-role --capabilities CAPABILITY_NAMED_IAM
+            aws cloudformation deploy --template-file cloudformation/cfn_application.yml \
+              --stack-name raisetech-aws-lecture13-ci-application --capabilities CAPABILITY_NAMED_IAM
+
   # execution-ansible:
   #   executor: ansible-playbook/default
   #   steps:
@@ -36,50 +58,47 @@ jobs:
   #     - ansible-playbook/playbook:
   #         playbook: ansible/playbook.yml
   #         playbook-options: -i ansible/inventory
-  execute-serverspec:
-    executor: ruby/default
-    steps:
-      - checkout
-      - ruby/install:
-          version: 3.2.3
-      - add_ssh_keys:
-          fingerprints:
-            - "SHA256:MfFRPirALrmTRAdw/j+bF6ghu9kvK3WI2JdrdMSSOlo"
-      - run:
-          name: Set ~/.ssh/config
-          command: |
-            mkdir -p ~/.ssh
-            echo "Host target" >> ~/.ssh/config
-            echo "HostName 52.198.173.234" >> ~/.ssh/config
-            echo "User ec2-user" >> ~/.ssh/config
-            echo "StrictHostKeyChecking no" >> ~/.ssh/config
-      - run:
-          name: Debug spec directory
-          command: |
-            ls -la serverspec/spec/
-            ls -la serverspec/spec/target
-      - run:
-          name: Setup Serverspec
-          command: |
-            cd serverspec
-            bundle install
-      - run:
-          name: Execute Serverspec
-          command: |
-            cd serverspec
-            export TARGET_HOST=52.198.173.234
-            bundle exec rake spec:target
+  # execute-serverspec:
+  #   executor: ruby/default
+  #   steps:
+  #     - checkout
+  #     - ruby/install:
+  #         version: 3.2.3
+  #     - add_ssh_keys:
+  #         fingerprints:
+  #           - "SHA256:MfFRPirALrmTRAdw/j+bF6ghu9kvK3WI2JdrdMSSOlo"
+  #     - run:
+  #         name: Set ~/.ssh/config
+  #         command: |
+  #           mkdir -p ~/.ssh
+  #           echo "Host target" >> ~/.ssh/config
+  #           echo "HostName 52.198.173.234" >> ~/.ssh/config
+  #           echo "User ec2-user" >> ~/.ssh/config
+  #           echo "StrictHostKeyChecking no" >> ~/.ssh/config
+  #     - run:
+  #         name: Debug spec directory
+  #         command: |
+  #           ls -la serverspec/spec/
+  #           ls -la serverspec/spec/target
+  #     - run:
+  #         name: Setup Serverspec
+  #         command: |
+  #           cd serverspec
+  #           bundle install
+  #     - run:
+  #         name: Execute Serverspec
+  #         command: |
+  #           cd serverspec
+  #           export TARGET_HOST=52.198.173.234
+  #           bundle exec rake spec:target
 
 # Orchestrate jobs using workflows
-# See: https://circleci.com/docs/configuration-reference/#workflows
+# See: https://circleci.com/docs/workflows/ & https://circleci.com/docs/configuration-reference/#workflows
 workflows:
-  circleci-lec00-workflow:
+  iaas-pipeline-workflow: # This is the name of the workflow, feel free to change it to better match your workflow.
+    # Inside the workflow, you define the jobs you want to run.
     jobs:
-      - execute-serverspec
-      # - execution-cloudformation
-      # - execution-ansible:
-      #     requires:
-      #       - execution-cloudformation
-      # - execute-serverspec:
-      #     requires:
-      #       - execution-ansible
+      - cfn-lint
+      - execute-cloudformation:
+          requires:
+            - cfn-lint

@@ -1,0 +1,263 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: create EC2, RDS, ALB, S3
+
+Parameters:
+  PJName:
+    Type: String
+    Default: "aws-lecture13-ci"
+
+  KeyName:
+    Description: The EC2 Key Pair to allow SSH access to the instance
+    Type: String
+    Default: "id_rsa_aws_from_m1_win"
+
+  MyIP:
+    Description: IP address allowed to access EC2
+    Type: String
+    Default: "0.0.0.0/0"
+
+  TagKey:
+    Description: key for cost allocation tags
+    Type: String
+    Default: "RaiseTech"
+
+Resources:
+  # ------------------------------------------------------------#
+  #  InstanceProfile
+  # ------------------------------------------------------------#
+  CfnCIS3AccessInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: "/"
+      Roles:
+        - !ImportValue CfnCIS3AccessRole-role-name
+
+  # ------------------------------------------------------------#
+  #  SecurityGroup(for EC2)
+  # ------------------------------------------------------------#
+  CfnCIEC2SecGrp:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub "${PJName}-ec2-sg"
+      GroupDescription: SecurityGroup for EC2
+      VpcId: !ImportValue CfnCIVPC-ID
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Ref MyIP
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: !Ref MyIP
+      Tags:
+        - Key: !Ref TagKey
+          Value: !Ref PJName
+
+  # ------------------------------------------------------------#
+  #  EC2 Instance
+  # ------------------------------------------------------------#
+  CfnCIEC2:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-0037237888be2fe22
+      IamInstanceProfile: !Ref CfnCIS3AccessInstanceProfile
+      KeyName: !Ref KeyName
+      InstanceType: t2.micro
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: "true"
+          DeviceIndex: "0"
+          GroupSet:
+            - !Ref CfnCIEC2SecGrp
+          SubnetId: !ImportValue CfnCIPublicSubnet1A-ID
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeType: gp2
+            DeleteOnTermination: true
+            VolumeSize: 8
+      Tags:
+        - Key: Name
+          Value: !Sub "${PJName}-ec2"
+        - Key: !Ref TagKey
+          Value: !Ref PJName
+
+  # ------------------------------------------------------------#
+  #  SecurityGroup(for RDS)
+  # ------------------------------------------------------------#
+  CfnCIRDSSecGrp:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub "${PJName}-rds-sg"
+      GroupDescription: SecurityGroup for RDS
+      VpcId: !ImportValue CfnCIVPC-ID
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3306
+          ToPort: 3306
+          SourceSecurityGroupId: !Ref CfnCIEC2SecGrp
+      Tags:
+        - Key: !Ref TagKey
+          Value: !Ref PJName
+
+  # ------------------------------------------------------------#
+  #  DBSubnetGroup
+  # ------------------------------------------------------------#
+  CfnCIRDSSubnetGroup:
+    Type: "AWS::RDS::DBSubnetGroup"
+    Properties:
+      DBSubnetGroupName: !Sub "${PJName}-RDS-SubnetGroup"
+      DBSubnetGroupDescription: !Sub "${PJName}-RDS-SubnetGroup"
+      SubnetIds:
+        - !ImportValue CfnCIPrivateSubnet1A-ID
+        - !ImportValue CfnCIPrivateSubnet1C-ID
+      Tags:
+        - Key: !Ref TagKey
+          Value: !Ref PJName
+
+  # ------------------------------------------------------------#
+  #  Secret (for RDS password)
+  # ------------------------------------------------------------#
+  CfnCIRDSSecret:
+    Type: "AWS::SecretsManager::Secret"
+    Properties:
+      Name: !Sub "${PJName}-rds-secret"
+      Description: "RDS password for my RDS instance"
+      GenerateSecretString:
+        SecretStringTemplate: '{"username": "root"}'
+        GenerateStringKey: "password"
+        PasswordLength: 32
+        ExcludeCharacters: '"@/\\''=;`$<>&!#*()[]{}|:,?-'
+      Tags:
+        - Key: !Ref TagKey
+          Value: !Ref PJName
+
+  # ------------------------------------------------------------#
+  #  RDS DBInstance
+  # ------------------------------------------------------------#
+  CfnCIRDSInstance:
+    Type: "AWS::RDS::DBInstance"
+    Properties:
+      DBInstanceIdentifier: !Sub "${PJName}-RDS"
+      Engine: MySQL
+      EngineVersion: "8.0.39"
+      DBInstanceClass: db.t3.micro
+      AllocatedStorage: "20"
+      StorageType: gp2
+      MasterUsername: !Sub "{{resolve:secretsmanager:${CfnCIRDSSecret}:SecretString:username}}"
+      MasterUserPassword: !Sub "{{resolve:secretsmanager:${CfnCIRDSSecret}:SecretString:password}}"
+      PubliclyAccessible: false
+      MultiAZ: false
+      AutoMinorVersionUpgrade: false
+      VPCSecurityGroups:
+        - !Ref CfnCIRDSSecGrp
+      CopyTagsToSnapshot: true
+      BackupRetentionPeriod: 0
+      DBSubnetGroupName: !Ref CfnCIRDSSubnetGroup
+      AvailabilityZone: !Select
+        - 0
+        - Fn::GetAZs: !Ref AWS::Region
+      Tags:
+        - Key: !Ref TagKey
+          Value: !Ref PJName
+
+  # ------------------------------------------------------------#
+  #  SecurityGroup(for ALB)
+  # ------------------------------------------------------------#
+  CfnCIALBSecGrp:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupName: !Sub "${PJName}-alb-sg"
+      GroupDescription: SecurityGroup for ALB
+      VpcId: !ImportValue CfnCIVPC-ID
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: "0.0.0.0/0"
+      Tags:
+        - Key: !Ref TagKey
+          Value: !Ref PJName
+
+  # ------------------------------------------------------------#
+  #  TargetGroup
+  # ------------------------------------------------------------#
+  CfnCITargetGroup:
+    Type: "AWS::ElasticLoadBalancingV2::TargetGroup"
+    Properties:
+      Name: !Sub "${PJName}-tg"
+      VpcId: !ImportValue CfnCIVPC-ID
+      Protocol: HTTP
+      Port: 80
+      TargetType: instance
+      HealthCheckPath: "/"
+      HealthyThresholdCount: 5
+      UnhealthyThresholdCount: 2
+      HealthCheckTimeoutSeconds: 5
+      HealthCheckIntervalSeconds: 30
+      Matcher:
+        HttpCode: 200
+      Targets:
+        - Id: !Ref CfnCIEC2
+          Port: 80
+      Tags:
+        - Key: !Ref TagKey
+          Value: !Ref PJName
+
+  # ------------------------------------------------------------#
+  #  LoadBalancer
+  # ------------------------------------------------------------#
+  CfnCIALB:
+    Type: "AWS::ElasticLoadBalancingV2::LoadBalancer"
+    Properties:
+      Name: !Sub "${PJName}-alb"
+      Type: "application"
+      IpAddressType: ipv4
+      Scheme: "internet-facing"
+      SecurityGroups:
+        - !Ref CfnCIALBSecGrp
+      Subnets:
+        - !ImportValue CfnCIPublicSubnet1A-ID
+        - !ImportValue CfnCIPublicSubnet1C-ID
+      Tags:
+        - Key: !Ref TagKey
+          Value: !Ref PJName
+
+  # ------------------------------------------------------------#
+  #  Listener
+  # ------------------------------------------------------------#
+  CfnCIALBListener:
+    Type: "AWS::ElasticLoadBalancingV2::Listener"
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref CfnCITargetGroup
+      LoadBalancerArn: !Ref CfnCIALB
+      Port: 80
+      Protocol: HTTP
+
+  # ------------------------------------------------------------#
+  #  S3 Bucket
+  # ------------------------------------------------------------#
+  CfnCIS3Bucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Delete
+    Properties:
+      BucketName: !Sub "${PJName}-bucket"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      Tags:
+        - Key: !Ref TagKey
+          Value: !Ref PJName
+
+# ------------------------------------------------------------#
+#  Outputs
+# ------------------------------------------------------------#
+Outputs:
+  DBEndpoint:
+    Value: !GetAtt CfnCIRDSInstance.Endpoint.Address
+  ALBDNS:
+    Value: !GetAtt CfnCIALB.DNSName
