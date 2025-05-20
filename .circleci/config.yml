@@ -46,6 +46,68 @@ jobs:
             aws cloudformation deploy --template-file cloudformation/cfn_application.yml \
               --stack-name raisetech-aws-lecture13-ci-application --capabilities CAPABILITY_NAMED_IAM
 
+  execute-ansible:
+    executor: ansible-playbook/default
+    steps:
+      - checkout
+      - add_ssh_keys:
+          fingerprints:
+            - "SHA256:MfFRPirALrmTRAdw/j+bF6ghu9kvK3WI2JdrdMSSOlo"
+      - ansible-playbook/install:
+          version: 2.10.7
+      - aws-cli/setup:
+          aws_access_key_id: AWS_ACCESS_KEY_ID
+          aws_secret_access_key: AWS_SECRET_ACCESS_KEY
+          region: AWS_DEFAULT_REGION
+      # EC2 の Public IP を取得し、Ansible 用 inventory を動的に作成
+      - run:
+          name: Get public IP of target node
+          command: |
+            TARGET_IP=$(aws ec2 describe-instances \
+              --filters "Name=tag:Name,Values=aws-lecture13-ci-ec2" \
+              --query "Reservations[*].Instances[*].PublicIpAddress" \
+              --output text)
+            echo -e "[target_node]\n${TARGET_IP} ansible_user=ec2-user \
+            ansible_ssh_private_key_file=~/.ssh/circleci-key-pair.pem" > ansible/inventory
+            cat ansible/inventory
+            echo "${TARGET_IP}" > target_ip.txt
+      # RDS パスワードを Secrets Manager から取得し、環境変数にセット
+      - run:
+          name: Get RDS password from AWS Secrets Manager
+          command: |
+            DB_PASSWORD=$(aws secretsmanager get-secret-value \
+              --secret-id aws-lecture13-ci-rds-secret \
+              --query 'SecretString' \
+              --output text | jq '.password')
+            echo "export DB_PASSWORD=${DB_PASSWORD}" >> $BASH_ENV
+      # DBホスト（RDSエンドポイント）取得 → 環境変数にセット
+      - run:
+          name: Get DB endpoint
+          command: |
+            DB_HOST=$(aws cloudformation describe-stacks \
+              --stack-name raisetech-aws-lecture13-ci-application \
+              --query "Stacks[0].Outputs[?OutputKey=='DBEndpoint'].OutputValue" \
+              --output text)
+            echo "export DB_HOST=${DB_HOST}" >> $BASH_ENV
+      # ALB のDNS名を取得 → 環境変数にセット
+      - run:
+          name: Get ALB DNS
+          command: |
+            ALB_DNS=$(aws cloudformation describe-stacks \
+              --stack-name raisetech-aws-lecture13-ci-application \
+              --query "Stacks[0].Outputs[?OutputKey=='ALBDNS'].OutputValue" \
+              --output text)
+            echo "export ALB_DNS=${ALB_DNS}" >> $BASH_ENV
+      # IPをworkspaceに保存（他ジョブで利用可能に）
+      - persist_to_workspace:
+          root: .
+          paths:
+            - target_ip.txt
+      # AnsiblePlaybookを実行
+      - ansible-playbook/playbook:
+          playbook: ansible/playbook.yml
+          playbook-options: -i ansible/inventory
+
   # execution-ansible:
   #   executor: ansible-playbook/default
   #   steps:
@@ -102,3 +164,6 @@ workflows:
       - execute-cloudformation:
           requires:
             - cfn-lint
+      - execute-ansible:
+          requires:
+            - execute-cloudformation

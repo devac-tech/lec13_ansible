@@ -1,0 +1,56 @@
+---
+# nvm（Node Version Manager）がインストール済みか確認
+- name: Check nvm installed
+  shell: bash -lc "nvm -v"
+  register: nvm_exists
+  changed_when: false
+  ignore_errors: true
+
+# nvm をインストール（未インストール時のみ）
+- name: Install nvm
+  become: no
+  ansible.builtin.shell: >
+    curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.40.1/install.sh | bash
+  args:
+    executable: /bin/bash
+    chdir: /home/ec2-user
+    creates: /home/ec2-user/.nvm/nvm.sh
+  when: nvm_exists is failed
+
+# 指定された Node.js バージョンがインストール済みか確認
+- name: Check node installed
+  shell: bash -lc "node -v | grep "{{ node_version }}""
+  register: node_version_check
+  changed_when: false
+  ignore_errors: true
+
+# Node.js をインストール（nvm経由）
+- name: Install node
+  become: no
+  shell: >
+    . /home/ec2-user/.nvm/nvm.sh && nvm install {{ item }}
+  args:
+    executable: /bin/bash
+    chdir: /home/ec2-user
+    creates: /home/ec2-user/.nvm/versions/{{ item }}
+  loop:
+    - "{{ node_version }}"
+  when: node_version_check is failed
+
+# Yarn がインストール済みか確認
+- name: Check yarn installed
+  shell: bash -lc "yarn -v | grep "{{ yarn_version }}""
+  register: yarn_version_check
+  changed_when: false
+  ignore_errors: true
+
+# Yarn をインストール（npm経由）
+- name: Install yarn
+  shell: bash -lc "npm install -g yarn@{{ yarn_version }}"
+  when: yarn_version_check is failed
+
+# JavaScript パッケージをインストール
+- name: Package install
+  shell: bash -lc "yarn install"
+  args:
+    chdir: "{{ app_dir }}"

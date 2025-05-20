@@ -1,0 +1,42 @@
+---
+# MariaDB の削除 MySQL との競合を避けるため
+- name: Remove MariaDB
+  become_user: root
+  yum:
+    name: mariadb-*
+    state: absent
+
+# MySQL 公式リポジトリのRPMをインストール
+- name: Install MySQL rpm from remote repo
+  become_user: root
+  yum:
+    name: "https://repo.mysql.com//mysql80-community-release-el7-7.noarch.rpm"
+    state: present
+
+# GPGキーのインポート yum がリモートリポジトリのRPMを信頼できるようにする
+- name: Import MySQL GPG key
+  become_user: root
+  shell: rpm --import "https://repo.mysql.com/RPM-GPG-KEY-mysql-2023"
+
+# MySQL本体のインストール
+- name: Install MySQL packages
+  become_user: root
+  yum:
+    name:
+      - mysql-community-server
+      - mysql-community-devel
+    state: present
+
+# Railsアプリ用 database.yml をテンプレートから配置
+- name: Set database.yml from template
+  template:
+    src: database.yml.j2
+    dest: "{{ app_dir }}/config/database.yml"
+  become_user: root
+
+# mysqld サービスの停止
+- name: Stop MySQL service
+  become_user: root
+  service:
+    name: mysqld
+    state: stopped

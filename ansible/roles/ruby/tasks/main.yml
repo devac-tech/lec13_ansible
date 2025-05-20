@@ -1,0 +1,86 @@
+---
+# rbenv のチェックとインストール
+- name: Check rbenv
+  shell: bash -lc "rbenv -v"
+  register: rbenv_exists
+  changed_when: false
+  ignore_errors: true
+
+# rbenv 本体を GitHub からクローン
+- name: Clone rbenv repository
+  git:
+    repo: https://github.com/rbenv/rbenv.git
+    dest: /home/ec2-user/.rbenv
+  when: rbenv_exists is failed
+
+# .bash_profile にパスと初期化コマンドを追加
+- name: Pass rbenv path
+  lineinfile:
+    path: /home/ec2-user/.bash_profile
+    line: 'export PATH="$HOME/.rbenv/bin:$PATH"'
+    create: true
+  when: rbenv_exists is failed
+
+# .bash_profile の内容を反映
+- name: Initialize rbenv
+  lineinfile:
+    path: /home/ec2-user/.bash_profile
+    line: 'eval "$(rbenv init -)"'
+    create: true
+  when: rbenv_exists is failed
+
+- name: Source bash profile
+  shell: bash -lc "source /home/ec2-user/.bash_profile"
+  when: rbenv_exists is failed
+
+# ruby-build を rbenv のプラグインとして追加
+- name: Clone ruby-build repository
+  git:
+    repo: https://github.com/rbenv/ruby-build.git
+    dest: /home/ec2-user/.rbenv/plugins/ruby-build
+  when: rbenv_exists is failed
+
+# Ruby のバージョンインストールと設定
+- name: Check Ruby {{ ruby_version }} installed
+  shell: bash -lc "rbenv versions | grep {{ ruby_version }}"
+  register: ruby_installed
+  changed_when: false
+  ignore_errors: true
+
+# Ruby をインストール（rbenv + ruby-build によって実現）
+- name: Install Ruby
+  shell: bash -lc "rbenv install {{ ruby_version }}"
+  when: ruby_installed is failed
+
+- name: Check Ruby version
+  shell: bash -lc "ruby -v | grep {{ ruby_version }}"
+  register: ruby_version_check
+  changed_when: false
+  ignore_errors: true
+
+# rbenv global でデフォルトの Ruby バージョンを設定
+- name: Apply Ruby {{ ruby_version }}
+  shell: bash -lc "rbenv global {{ ruby_version }}"
+  when: ruby_version_check is failed
+
+# サンプルアプリを GitHub から取得して配置
+- name: Clone the repository
+  git:
+    repo: "https://github.com/yuta-ushijima/raisetech-live8-sample-app.git"
+    dest: "{{ app_dir }}"
+    force: yes
+
+# bundler のチェックとインストール
+- name: Check bundler installed
+  shell: bash -lc "bundler -v | grep {{ bundler_version }}"
+  args:
+    chdir: "{{ app_dir }}"
+  register: bundler_version_check
+  changed_when: false
+  ignore_errors: true
+
+- name: Install bundler {{ bundler_version }}
+  shell: bash -lc "gem install bundler -v {{ bundler_version }}"
+  args:
+    chdir: "{{ app_dir }}"
+  when: bundler_version_check is failed

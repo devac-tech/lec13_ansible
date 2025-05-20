@@ -1,0 +1,30 @@
+---
+# yum の全パッケージ更新
+- name: Update yum
+  become_user: root
+  yum:
+    name: "*"
+    state: latest
+
+# Git のインストール
+- name: Install Git
+  become_user: root
+  yum:
+    name: git
+    state: present
+    lock_timeout: 180
+
+# Rubyビルドに必要な依存パッケージをインストール
+- name: Install Ruby dependencies
+  become_user: root
+  yum:
+    name:
+      - gcc-c++
+      - glibc-headers
+      - openssl-devel
+      - libyaml-devel
+      - readline-devel
+      - zlib-devel
+      - libffi-devel
+      - ImageMagick
+    state: present

@@ -1,24 +1,43 @@
-# tasks file for nginx
-
-- name: Check if nginx1 is already enabled
-  shell: "amazon-linux-extras list"
+---
+- name: Check nginx1 installed
+  shell: bash -lc "amazon-linux-extras list"
   register: amazon_linux_extras_list
   changed_when: false
-  become: yes
 
-- name: Debug amazon-linux-extras list output
-  debug:
-    msg: "{{ amazon_linux_extras_list.stdout }}"
-
-- name: Enable to install NGINX.
-  shell: "amazon-linux-extras enable nginx1"
-  become: yes
-  # when: amazon_linux_extras_list.stdout is search("nginx1=latest\\s+enabled")
-  # when: "'nginx1=latest enabled' in amazon_linux_extras_list.stdout | regex_replace('\\s+', ' ')"
+- name: Enable to install nginx1
+  become_user: root
+  shell: bash -lc "amazon-linux-extras enable nginx1"
   when: "'nginx1=latest' not in amazon_linux_extras_list.stdout"
 
-- name: Install nginx
+- name: Install Nginx
+  become_user: root
   yum:
     name: nginx
-    state: present
-  become: yes
+
+- name: Set nginx.conf from template
+  become_user: root
+  template:
+    src: nginx.conf.j2
+    dest: "/etc/nginx/nginx.conf"
+    mode: "644"
+
+- name: Change ownership of /var/lib/nginx
+  become_user: root
+  file:
+    path: /var/lib/nginx/
+    state: directory
+    owner: ec2-user
+    group: ec2-user
+    recurse: true
+
+- name: Restart nginx
+  become_user: root
+  systemd:
+    name: nginx
+    state: restarted
+
+- name: Restart puma
+  become_user: root
+  systemd:
+    name: puma
+    state: restarted

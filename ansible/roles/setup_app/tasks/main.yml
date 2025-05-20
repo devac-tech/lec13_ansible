@@ -1,0 +1,70 @@
+---
+# bundle install（依存ライブラリ）
+- name: Execute bundle install
+  shell: bash -lc "bundle install"
+  args:
+    chdir: "{{ app_dir }}"
+
+# 設定ファイル配置（app, env, storage, puma）
+- name: Set application.rb from template
+  template:
+    src: application.rb.j2
+    dest: "{{ app_dir }}/config/application.rb"
+
+- name: Set development.rb from template
+  template:
+    src: development.rb.j2
+    dest: "{{ app_dir }}/config/environments/development.rb"
+
+- name: Set storage.yml from template
+  template:
+    src: storage.yml.j2
+    dest: "{{ app_dir }}/config/storage.yml"
+
+- name: Set puma.rb from template
+  template:
+    src: puma.rb.j2
+    dest: "{{ app_dir }}/config/puma.rb"
+
+# Puma systemd設定 → systemd reload
+- name: Set puma.service from template
+  become_user: root
+  template:
+    src: puma.service.j2
+    dest: "/etc/systemd/system/puma.service"
+
+- name: Reload systemd
+  become_user: root
+  systemd:
+    daemon_reload: yes
+
+# mysqld 起動
+- name: Start MySQL service
+  become_user: root
+  service:
+    name: mysqld
+    state: started
+
+# bin/setup（db:create / migrate など）
+- name: Execute bin/setup
+  shell: bash -lc "bin/setup"
+  args:
+    chdir: "{{ app_dir }}"
+
+# assets:precompile
+- name: Precompile assets
+  shell: bash -lc "RAILS_ENV=development bundle exec rails assets:precompile"
+  args:
+    chdir: "{{ app_dir }}"
+
+# tmp/sockets, tmp/pids ディレクトリ作成
+- name: Create sockets and pids directory
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "ec2-user"
+    group: "ec2-user"
+    mode: "775"
+  loop:
+    - "{{ app_dir }}/tmp/sockets"
+    - "{{ app_dir }}/tmp/pids"

@@ -1,5 +1,13 @@
----
-- hosts: targets
+- hosts: all
+  become_user: ec2-user
+  become: yes
+  vars:
+    app_dir: /home/ec2-user/raisetech-live8-sample-app
+
   roles:
-    - git
+    - yum
+    - ruby
+    - node
+    - mysql
+    - setup_app
     - nginx
