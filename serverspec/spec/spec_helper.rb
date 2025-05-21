@@ -12,7 +12,7 @@ raise 'TARGET_HOST is not set' if host.nil? || host.strip.empty?
 set :host, host
 set :ssh_options, {
   user: 'ec2-user',
-  keys: ['~/.ssh/id_rsa_aws_from_m1_win.pem'],
+  keys: ['~/.ssh/id_rsa_f4f2ec1be69af5cc96aa8044c2177d52'],
   auth_methods: ['publickey'],
   verify_host_key: :never
 }
