@@ -130,15 +130,11 @@ jobs:
           #   User ec2-user" >> ~/.ssh/config
           #   cat ~/.ssh/config
           command: |
-            echo -e "Host target\n    \
-            HostName 13.115.140.178\n    \
-            User ec2-user" >> ~/.ssh/config    \
+            echo -e "Host target\n\
+            HostName 13.115.140.178\n\
+            User ec2-user\n\
             StrictHostKeyChecking no\n" >> ~/.ssh/config
             cat ~/.ssh/config
-      # - run:
-      #     name: Export TARGET_HOST to ENV
-      #     command: |
-      #       echo "export TARGET_HOST=$(cat /home/circleci/project/target_ip.txt)" >> $BASH_ENV
       - run:
           name: Install dependencies
           command: |
@@ -154,39 +150,6 @@ jobs:
           command: |
             cd serverspec
             TARGET_HOST=13.115.140.178 bundle exec rake spec
-  # execute-serverspec:
-  #   executor: ruby/default
-  #   steps:
-  #     - checkout
-  #     - ruby/install:
-  #         version: 3.2.3
-  #     - add_ssh_keys:
-  #         fingerprints:
-  #           - "SHA256:MfFRPirALrmTRAdw/j+bF6ghu9kvK3WI2JdrdMSSOlo"
-  #     - run:
-  #         name: Set ~/.ssh/config
-  #         command: |
-  #           mkdir -p ~/.ssh
-  #           echo "Host target" >> ~/.ssh/config
-  #           echo "HostName 52.198.173.234" >> ~/.ssh/config
-  #           echo "User ec2-user" >> ~/.ssh/config
-  #           echo "StrictHostKeyChecking no" >> ~/.ssh/config
-  #     - run:
-  #         name: Debug spec directory
-  #         command: |
-  #           ls -la serverspec/spec/
-  #           ls -la serverspec/spec/target
-  #     - run:
-  #         name: Setup Serverspec
-  #         command: |
-  #           cd serverspec
-  #           bundle install
-  #     - run:
-  #         name: Execute Serverspec
-  #         command: |
-  #           cd serverspec
-  #           export TARGET_HOST=52.198.173.234
-  #           bundle exec rake spec:target
 
 # Orchestrate jobs using workflows
 # See: https://circleci.com/docs/workflows/ & https://circleci.com/docs/configuration-reference/#workflows
