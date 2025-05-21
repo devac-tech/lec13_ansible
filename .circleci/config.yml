@@ -192,7 +192,3 @@ workflows:
       - execute_serverspec:
           requires:
             - execute-ansible
-
-  execute-serverspec-only:
-    jobs:
-      - execute_serverspec
