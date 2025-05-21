@@ -122,10 +122,19 @@ jobs:
       - attach_workspace:
           at: .
       - run:
-          name: Debug SSH keys and env
+          name: Setup SSH config
+          # command: |
+          #   echo -e "Host target\n    \
+          #   HostName $(cat /home/circleci/project/target_ip.txt)\n    \
+          #   IdentityFile ~/.ssh/id_rsa_aws_from_m1_win.pem\n    \
+          #   User ec2-user" >> ~/.ssh/config
+          #   cat ~/.ssh/config
           command: |
-            echo "TARGET_HOST=$TARGET_HOST"
-            ls -al ~/.ssh/
+            echo -e "Host target\n\
+            HostName 13.115.140.178\n\
+            User ec2-user\n\
+            StrictHostKeyChecking no\n" >> ~/.ssh/config
+            cat ~/.ssh/config
       - run:
           name: Install dependencies
           command: |
@@ -140,7 +149,7 @@ jobs:
           name: Execute Serverspec test
           command: |
             cd serverspec
-            TARGET_HOST=$TARGET_HOST bundle exec rake spec
+            bundle exec rake spec
 
 # Orchestrate jobs using workflows
 # See: https://circleci.com/docs/workflows/ & https://circleci.com/docs/configuration-reference/#workflows

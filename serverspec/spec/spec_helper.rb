@@ -1,20 +1,23 @@
 require 'serverspec'
 require 'net/ssh'
 
+# SSHバックエンド
 set :backend, :ssh
+
+# sudoを使わない（CircleCIでは推奨）
 set :disable_sudo, true
 
-# 環境変数から読み取る
-host = ENV['TARGET_HOST']
-raise 'TARGET_HOST is not set' if host.nil? || host.strip.empty?
-puts "[DEBUG] ENV['TARGET_HOST'] = #{ENV['TARGET_HOST']}"
-puts "[DEBUG] set :host = #{host}"
+# 固定の "target" を使用（~/.ssh/config の Host名と一致）
+host = 'target'
 
-# 明示的にSSHオプションを定義
-set :host, host
-set :ssh_options, {
-  user: 'ec2-user',
-  keys: ['~/.ssh/id_rsa_f4f2ec1be69af5cc96aa8044c2177d52'],
-  auth_methods: ['publickey'],
-  verify_host_key: :never
-}
+# ~/.ssh/config を自動読み込み
+options = Net::SSH::Config.for(host)
+
+# ホスト設定
+set :host, options[:host_name] || host
+set :ssh_options, options
+
+# OS検出設定（省略可能）
+RSpec.configure do |c|
+  c.host = host
+end
