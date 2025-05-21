@@ -18,6 +18,7 @@ end
 
 # ホストと SSH 接続オプション
 host = ENV['TARGET_HOST']
+raise 'TARGET_HOST is not set' if host.nil? || host.strip.empty?
 
 # ~/.ssh/config に設定があればそれを自動的に読み込む
 options = Net::SSH::Config.for(host)

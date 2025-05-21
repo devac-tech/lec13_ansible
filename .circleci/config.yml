@@ -123,9 +123,14 @@ jobs:
           at: .
       - run:
           name: Setup SSH config
+          # command: |
+          #   echo -e "Host target\n    \
+          #   HostName $(cat /home/circleci/project/target_ip.txt)\n    \
+          #   IdentityFile ~/.ssh/circleci-key-pair.pem\n    \
+          #   User ec2-user" >> ~/.ssh/config
+          #   cat ~/.ssh/config
           command: |
-            echo -e "Host target\n    \
-            HostName $(cat /home/circleci/project/target_ip.txt)\n    \
+            echo -e "Host 13.115.140.178\n    \
             IdentityFile ~/.ssh/circleci-key-pair.pem\n    \
             User ec2-user" >> ~/.ssh/config
             cat ~/.ssh/config
