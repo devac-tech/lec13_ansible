@@ -145,7 +145,8 @@ jobs:
           name: Execute Serverspec test
           command: |
             cd serverspec
-            TARGET_HOST=${TARGET_HOST} bundle exec rake spec
+            export TARGET_HOST=$(cat ../target_ip.txt)
+            bundle exec rake spec
 
   # execute-serverspec:
   #   executor: ruby/default
