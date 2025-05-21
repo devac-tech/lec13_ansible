@@ -110,6 +110,8 @@ jobs:
 
   execute_serverspec:
     executor: ruby/default
+    environment:
+      TARGET_HOST: 13.115.140.178
     steps:
       - checkout
       - ruby/install:
