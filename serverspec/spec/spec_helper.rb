@@ -26,11 +26,11 @@ options = Net::SSH::Config.for(host)
 # config に設定がない場合に備え、直接設定を補完
 # options[:host_name] ||= host
 # options[:user]      ||= 'ec2-user'
-# options[:keys]      ||= ['~/.ssh/id_rsa_aws_from_m1_win.pem']
+options[:keys]      ||= ['~/.ssh/id_rsa_aws_from_m1_win.pem']
 # options[:auth_methods] ||= ['publickey']
 
 # ユーザー指定がなければ、現在ログイン中のユーザー名を使う
-# options[:user] ||= Etc.getlogin
+options[:user] ||= Etc.getlogin
 
 # 実際に接続するホスト名（IP）と、SSHのオプションを Serverspec に渡す
 set :host,        options[:host_name] || host
