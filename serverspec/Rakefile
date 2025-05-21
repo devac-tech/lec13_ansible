@@ -1,6 +1,3 @@
-require 'rake'
-require 'rspec/core/rake_task'
-
 desc "Run serverspec to all targets"
 task :default => 'spec:target'
 
@@ -13,28 +10,35 @@ namespace :spec do
   end
 end
 
-# task :spec    => 'spec:all'
-# task :default => :spec
+require 'rake'
+require 'rspec/core/rake_task'
 
-# namespace :spec do
-#   targets = []
-#   Dir.glob('./spec/*').each do |dir|
-#     next unless File.directory?(dir)
-#     target = File.basename(dir)
-#     target = "_#{target}" if target == "default"
-#     targets << target
-#   end
+task :spec    => 'spec:all'
+task :default => :spec
 
-#   task :all     => targets
-#   task :default => :all
+# spec/ 以下のディレクトリを自動的に列挙
+namespace :spec do
+  targets = []
+  Dir.glob('./spec/*').each do |dir|
+    next unless File.directory?(dir)
+    target = File.basename(dir)
+    target = "_#{target}" if target == "default"
+    targets << target
+  end
+  
+  # 全ターゲットのテストを実
+  task :all     => targets
+  task :default => :all
 
-#   targets.each do |target|
-#     original_target = target == "_default" ? target[1..-1] : target
-#     desc "Run serverspec tests to #{original_target}"
-#     RSpec::Core::RakeTask.new(target.to_sym) do |t|
-#       ENV['TARGET_HOST'] = original_target
-#       t.pattern = "spec/#{original_target}/*_spec.rb"
-#       t.rspec_opts = '--format documentation'
-#     end
-#   end
-# end
+  targets.each do |target|
+    # _default を default に戻す処理（Rake の予約語との衝突回避）
+    original_target = target == "_default" ? target[1..-1] : target
+    desc "Run serverspec tests to #{original_target}"
+    # 各ターゲット（ホスト）に対応する RSpec タスクを定義
+    RSpec::Core::RakeTask.new(target.to_sym) do |t|
+      ENV['TARGET_HOST'] = original_target
+      t.pattern = "spec/#{original_target}/*_spec.rb"
+    end
+  end
+end
+

@@ -108,18 +108,36 @@ jobs:
           playbook: ansible/playbook.yml
           playbook-options: -i ansible/inventory
 
-  # execution-ansible:
-  #   executor: ansible-playbook/default
-  #   steps:
-  #     - checkout
-  #     - add_ssh_keys:
-  #         fingerprints:
-  #           - "SHA256:MfFRPirALrmTRAdw/j+bF6ghu9kvK3WI2JdrdMSSOlo"
-  #     - ansible-playbook/install:
-  #         version: 2.10.7
-  #     - ansible-playbook/playbook:
-  #         playbook: ansible/playbook.yml
-  #         playbook-options: -i ansible/inventory
+  execute_serverspec:
+    executor: ruby/default
+    steps:
+      - checkout
+      - ruby/install:
+          version: 3.2.3
+      - add_ssh_keys:
+          fingerprints:
+            - "SHA256:MfFRPirALrmTRAdw/j+bF6ghu9kvK3WI2JdrdMSSOlo"
+      - attach_workspace:
+          at: .
+      - run:
+          name: Setup SSH config
+          command: |
+            echo -e "Host target\n    \
+            HostName $(cat /home/circleci/project/target_ip.txt)\n    \
+            IdentityFile ~/.ssh/circleci-key-pair.pem\n    \
+            User ec2-user" >> ~/.ssh/config
+            cat ~/.ssh/config
+      - run:
+          name: Install dependencies
+          command: |
+            cd serverspec
+            bundle install
+      - run:
+          name: Execute Serverspec test
+          command: |
+            cd serverspec
+            bundle exec rake spec
+
   # execute-serverspec:
   #   executor: ruby/default
   #   steps:
@@ -167,3 +185,10 @@ workflows:
       - execute-ansible:
           requires:
             - execute-cloudformation
+      - execute_serverspec:
+          requires:
+            - execute-ansible
+
+  execute-serverspec-only:
+    jobs:
+      - execute_serverspec
