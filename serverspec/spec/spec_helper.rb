@@ -4,8 +4,8 @@ require 'net/ssh'
 # SSHバックエンド
 set :backend, :ssh
 
-# sudoを使わない（CircleCIでは推奨）
-set :disable_sudo, true
+# sudo
+set :disable_sudo, false
 
 # 固定の "target" を使用（~/.ssh/config の Host名と一致）
 host = 'target'
