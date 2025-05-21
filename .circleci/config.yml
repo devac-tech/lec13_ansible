@@ -127,20 +127,25 @@ jobs:
             IdentityFile ~/.ssh/circleci-key-pair.pem\n    \
             User ec2-user" >> ~/.ssh/config
             cat ~/.ssh/config
-      - run:
-          name: Export TARGET_HOST to ENV
-          command: |
-            echo "export TARGET_HOST=$(cat /home/circleci/project/target_ip.txt)" >> $BASH_ENV
+      # - run:
+      #     name: Export TARGET_HOST to ENV
+      #     command: |
+      #       echo "export TARGET_HOST=$(cat /home/circleci/project/target_ip.txt)" >> $BASH_ENV
       - run:
           name: Install dependencies
           command: |
             cd serverspec
             bundle install
+      # - run:
+      #     name: Execute Serverspec test
+      #     command: |
+      #       cd serverspec
+      #       bundle exec rake spec
       - run:
           name: Execute Serverspec test
           command: |
             cd serverspec
-            bundle exec rake spec
+            TARGET_HOST=$(cat /home/circleci/project/target_ip.txt) bundle exec rake spec
 
   # execute-serverspec:
   #   executor: ruby/default
@@ -182,13 +187,14 @@ workflows:
   iaas-pipeline-workflow: # This is the name of the workflow, feel free to change it to better match your workflow.
     # Inside the workflow, you define the jobs you want to run.
     jobs:
-      - cfn-lint
-      - execute-cloudformation:
-          requires:
-            - cfn-lint
-      - execute-ansible:
-          requires:
-            - execute-cloudformation
-      - execute_serverspec:
-          requires:
-            - execute-ansible
+      - execute_serverspec
+      # - cfn-lint
+      # - execute-cloudformation:
+      #     requires:
+      #       - cfn-lint
+      # - execute-ansible:
+      #     requires:
+      #       - execute-cloudformation
+      # - execute_serverspec:
+      #     requires:
+      #       - execute-ansible
