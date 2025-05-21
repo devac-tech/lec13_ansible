@@ -7,6 +7,8 @@ set :disable_sudo, true
 # 環境変数から読み取る
 host = ENV['TARGET_HOST']
 raise 'TARGET_HOST is not set' if host.nil? || host.strip.empty?
+puts "[DEBUG] ENV['TARGET_HOST'] = #{ENV['TARGET_HOST']}"
+puts "[DEBUG] set :host = #{host}"
 
 # 明示的にSSHオプションを定義
 set :host, host

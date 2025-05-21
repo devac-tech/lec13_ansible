@@ -140,7 +140,7 @@ jobs:
           name: Execute Serverspec test
           command: |
             cd serverspec
-            bundle exec rake spec
+            TARGET_HOST=$TARGET_HOST bundle exec rake spec
 
 # Orchestrate jobs using workflows
 # See: https://circleci.com/docs/workflows/ & https://circleci.com/docs/configuration-reference/#workflows
