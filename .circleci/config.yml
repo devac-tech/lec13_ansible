@@ -128,6 +128,10 @@ jobs:
             User ec2-user" >> ~/.ssh/config
             cat ~/.ssh/config
       - run:
+          name: Export TARGET_HOST to ENV
+          command: |
+            echo "export TARGET_HOST=$(cat /home/circleci/project/target_ip.txt)" >> $BASH_ENV
+      - run:
           name: Install dependencies
           command: |
             cd serverspec
