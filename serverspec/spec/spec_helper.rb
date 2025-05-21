@@ -18,13 +18,19 @@ end
 
 # ホストと SSH 接続オプション
 host = ENV['TARGET_HOST']
-raise 'TARGET_HOST is not set' if host.nil? || host.strip.empty?
+# raise 'TARGET_HOST is not set' if host.nil? || host.strip.empty?
 
 # ~/.ssh/config に設定があればそれを自動的に読み込む
 options = Net::SSH::Config.for(host)
 
-# ユーザー指定がなければ、現在ログイン中のユーザー名を使
-options[:user] ||= Etc.getlogin
+# config に設定がない場合に備え、直接設定を補完
+# options[:host_name] ||= host
+# options[:user]      ||= 'ec2-user'
+# options[:keys]      ||= ['~/.ssh/id_rsa_aws_from_m1_win.pem']
+# options[:auth_methods] ||= ['publickey']
+
+# ユーザー指定がなければ、現在ログイン中のユーザー名を使う
+# options[:user] ||= Etc.getlogin
 
 # 実際に接続するホスト名（IP）と、SSHのオプションを Serverspec に渡す
 set :host,        options[:host_name] || host

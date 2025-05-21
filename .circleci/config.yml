@@ -68,7 +68,7 @@ jobs:
               --query "Reservations[*].Instances[*].PublicIpAddress" \
               --output text)
             echo -e "[target_node]\n${TARGET_IP} ansible_user=ec2-user \
-            ansible_ssh_private_key_file=~/.ssh/circleci-key-pair.pem" > ansible/inventory
+            ansible_ssh_private_key_file=~/.ssh/id_rsa_aws_from_m1_win.pem" > ansible/inventory
             cat ansible/inventory
             echo "${TARGET_IP}" > target_ip.txt
       # RDS パスワードを Secrets Manager から取得し、環境変数にセット
@@ -126,12 +126,12 @@ jobs:
           # command: |
           #   echo -e "Host target\n    \
           #   HostName $(cat /home/circleci/project/target_ip.txt)\n    \
-          #   IdentityFile ~/.ssh/circleci-key-pair.pem\n    \
+          #   IdentityFile ~/.ssh/id_rsa_aws_from_m1_win.pem\n    \
           #   User ec2-user" >> ~/.ssh/config
           #   cat ~/.ssh/config
           command: |
             echo -e "Host 13.115.140.178\n    \
-            IdentityFile ~/.ssh/circleci-key-pair.pem\n    \
+            IdentityFile ~/.ssh/id_rsa_aws_from_m1_win.pem\n    \
             User ec2-user" >> ~/.ssh/config
             cat ~/.ssh/config
       # - run:
