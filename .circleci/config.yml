@@ -122,6 +122,11 @@ jobs:
       - attach_workspace:
           at: .
       - run:
+          name: Debug SSH keys and env
+          command: |
+            echo "TARGET_HOST=$TARGET_HOST"
+            ls -al ~/.ssh/
+      - run:
           name: Install dependencies
           command: |
             cd serverspec
@@ -135,7 +140,7 @@ jobs:
           name: Execute Serverspec test
           command: |
             cd serverspec
-            TARGET_HOST=13.115.140.178 bundle exec rake spec
+            bundle exec rake spec
 
 # Orchestrate jobs using workflows
 # See: https://circleci.com/docs/workflows/ & https://circleci.com/docs/configuration-reference/#workflows
