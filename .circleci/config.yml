@@ -122,20 +122,6 @@ jobs:
       - attach_workspace:
           at: .
       - run:
-          name: Setup SSH config
-          # command: |
-          #   echo -e "Host target\n    \
-          #   HostName $(cat /home/circleci/project/target_ip.txt)\n    \
-          #   IdentityFile ~/.ssh/id_rsa_aws_from_m1_win.pem\n    \
-          #   User ec2-user" >> ~/.ssh/config
-          #   cat ~/.ssh/config
-          command: |
-            echo -e "Host target\n\
-            HostName 13.115.140.178\n\
-            User ec2-user\n\
-            StrictHostKeyChecking no\n" >> ~/.ssh/config
-            cat ~/.ssh/config
-      - run:
           name: Install dependencies
           command: |
             cd serverspec

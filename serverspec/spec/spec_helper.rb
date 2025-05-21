@@ -4,9 +4,15 @@ require 'net/ssh'
 set :backend, :ssh
 set :disable_sudo, true
 
+# 環境変数から読み取る
 host = ENV['TARGET_HOST']
 raise 'TARGET_HOST is not set' if host.nil? || host.strip.empty?
 
-options = Net::SSH::Config.for('target') # ← SSH config で定義した "target" を使う
-set :host,        options[:host_name] || host
-set :ssh_options, options
+# 明示的にSSHオプションを定義
+set :host, host
+set :ssh_options, {
+  user: 'ec2-user',
+  keys: ['~/.ssh/id_rsa_aws_from_m1_win.pem'],
+  auth_methods: ['publickey'],
+  verify_host_key: :never
+}
