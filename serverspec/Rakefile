@@ -1,15 +1,3 @@
-desc "Run serverspec to all targets"
-task :default => 'spec:target'
-
-namespace :spec do
-  desc "Run spec for 'target'"
-  RSpec::Core::RakeTask.new(:target) do |t|
-    ENV['TARGET_HOST'] = ENV['TARGET_HOST'] || 'target'
-    t.pattern = 'spec/target/*_spec.rb'
-    t.rspec_opts = '--format documentation'
-  end
-end
-
 require 'rake'
 require 'rspec/core/rake_task'
 
