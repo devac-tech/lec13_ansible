@@ -71,50 +71,50 @@ jobs:
             ansible_ssh_private_key_file=~/.ssh/id_rsa_aws_from_m1_win.pem" > ansible/inventory
             cat ansible/inventory
             echo "${TARGET_IP}" > target_ip.txt
-      - run:
-          name: Get S3 Bucket name from CloudFormation
-          command: |
-            AWS_S3_BUCKET_NAME=$(aws cloudformation describe-stacks \
-              --stack-name raisetech-aws-lecture13-ci-application \
-              --query "Stacks[0].Outputs[?OutputKey=='S3BucketName'].OutputValue" \
-              --output text)
-            echo "export AWS_S3_BUCKET_NAME=${AWS_S3_BUCKET_NAME}" >> $BASH_ENV
+      # - run:
+      #     name: Get S3 Bucket name from CloudFormation
+      #     command: |
+      #       AWS_S3_BUCKET_NAME=$(aws cloudformation describe-stacks \
+      #         --stack-name raisetech-aws-lecture13-ci-application \
+      #         --query "Stacks[0].Outputs[?OutputKey=='S3BucketName'].OutputValue" \
+      #         --output text)
+      #       echo "export AWS_S3_BUCKET_NAME=${AWS_S3_BUCKET_NAME}" >> $BASH_ENV
       # RDS パスワードを Secrets Manager から取得し、環境変数にセット
-      - run:
-          name: Get RDS password from AWS Secrets Manager
-          command: |
-            DB_PASSWORD=$(aws secretsmanager get-secret-value \
-              --secret-id aws-lecture13-ci-rds-secret \
-              --query 'SecretString' \
-              --output text | jq '.password')
-            echo "export DB_PASSWORD=${DB_PASSWORD}" >> $BASH_ENV
+      # - run:
+      #     name: Get RDS password from AWS Secrets Manager
+      #     command: |
+      #       DB_PASSWORD=$(aws secretsmanager get-secret-value \
+      #         --secret-id aws-lecture13-ci-rds-secret \
+      #         --query 'SecretString' \
+      #         --output text | jq '.password')
+      #       echo "export DB_PASSWORD=${DB_PASSWORD}" >> $BASH_ENV
       # DBホスト（RDSエンドポイント）取得 → 環境変数にセット
-      - run:
-          name: Get DB endpoint
-          command: |
-            DB_HOST=$(aws cloudformation describe-stacks \
-              --stack-name raisetech-aws-lecture13-ci-application \
-              --query "Stacks[0].Outputs[?OutputKey=='DBEndpoint'].OutputValue" \
-              --output text)
-            echo "export DB_HOST=${DB_HOST}" >> $BASH_ENV
+      # - run:
+      #     name: Get DB endpoint
+      #     command: |
+      #       DB_HOST=$(aws cloudformation describe-stacks \
+      #         --stack-name raisetech-aws-lecture13-ci-application \
+      #         --query "Stacks[0].Outputs[?OutputKey=='DBEndpoint'].OutputValue" \
+      #         --output text)
+      #       echo "export DB_HOST=${DB_HOST}" >> $BASH_ENV
       # ALB のDNS名を取得 → 環境変数にセット
-      - run:
-          name: Get ALB DNS
-          command: |
-            ALB_DNS=$(aws cloudformation describe-stacks \
-              --stack-name raisetech-aws-lecture13-ci-application \
-              --query "Stacks[0].Outputs[?OutputKey=='ALBDNS'].OutputValue" \
-              --output text)
-            echo "export ALB_DNS=${ALB_DNS}" >> $BASH_ENV
+      # - run:
+      #     name: Get ALB DNS
+      #     command: |
+      #       ALB_DNS=$(aws cloudformation describe-stacks \
+      #         --stack-name raisetech-aws-lecture13-ci-application \
+      #         --query "Stacks[0].Outputs[?OutputKey=='ALBDNS'].OutputValue" \
+      #         --output text)
+      #       echo "export ALB_DNS=${ALB_DNS}" >> $BASH_ENV
       # IPをworkspaceに保存（他ジョブで利用可能に）
       - persist_to_workspace:
           root: .
           paths:
             - target_ip.txt
       # AnsiblePlaybookを実行
-      - ansible-playbook/playbook:
-          playbook: ansible/playbook.yml
-          playbook-options: -i ansible/inventory
+      # - ansible-playbook/playbook:
+      #     playbook: ansible/playbook.yml
+      #     playbook-options: -i ansible/inventory
 
   execute_serverspec:
     executor: ruby/default
@@ -163,7 +163,10 @@ workflows:
   iaas-pipeline-workflow: # This is the name of the workflow, feel free to change it to better match your workflow.
     # Inside the workflow, you define the jobs you want to run.
     jobs:
-      - execute_serverspec
+      - execute-ansible
+      - execute_serverspec:
+          requires:
+            - execute-ansible
       # - cfn-lint
       # - execute-cloudformation:
       #     requires:
