@@ -120,7 +120,12 @@ jobs:
           fingerprints:
             - "SHA256:MfFRPirALrmTRAdw/j+bF6ghu9kvK3WI2JdrdMSSOlo"
       - attach_workspace:
-          at: .
+          at: /home/circleci/project
+      - run:
+          name: Check if target_ip.txt exists
+          command: |
+            ls -al /home/circleci/project
+            cat /home/circleci/project/target_ip.txt
       - run:
           name: Setup SSH config
           command: |
