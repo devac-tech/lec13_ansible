@@ -261,3 +261,7 @@ Outputs:
     Value: !GetAtt CfnCIRDSInstance.Endpoint.Address
   ALBDNS:
     Value: !GetAtt CfnCIALB.DNSName
+  S3BucketName:
+    Value: !Ref CfnCIS3Bucket
+    Export:
+      Name: !Sub "${PJName}-S3BucketName"
