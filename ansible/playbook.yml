@@ -5,9 +5,9 @@
     app_dir: /home/ec2-user/raisetech-live8-sample-app
 
   roles:
-    - yum
-    - ruby
-    - node
-    - mysql
+    # - yum
+    # - ruby
+    # - node
+    # - mysql
     - setup_app
     - nginx
