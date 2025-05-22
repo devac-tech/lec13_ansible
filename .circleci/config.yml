@@ -120,7 +120,7 @@ jobs:
     executor: ruby/default
     environment:
       TARGET_HOST: 13.230.240.229
-      AWS_S3_BUCKET_NAME: "${PJName}-${AWS_ACCOUNT_ID}-ap-northeast-1-bucket"
+      AWS_S3_BUCKET_NAME: "aws-lecture13-ci-714475974411-ap-northeast-1-bucket"
     steps:
       - checkout
       - ruby/install:
