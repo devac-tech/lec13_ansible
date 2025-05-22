@@ -118,8 +118,6 @@ jobs:
 
   execute_serverspec:
     executor: ruby/default
-    # environment:
-    #   AWS_S3_BUCKET_NAME: "aws-lecture13-ci-714475974411-ap-northeast-1-bucket"
     steps:
       - checkout
       - ruby/install:
@@ -144,12 +142,6 @@ jobs:
             User ec2-user\n\
             StrictHostKeyChecking no\n" >> ~/.ssh/config
             cat ~/.ssh/config
-          # command: |
-          #   echo -e "Host target\n\
-          #   HostName 13.115.140.178\n\
-          #   User ec2-user\n\
-          #   StrictHostKeyChecking no\n" >> ~/.ssh/config
-          #   cat ~/.ssh/config
       - run:
           name: Install dependencies
           command: |
@@ -167,12 +159,13 @@ workflows:
   iaas-pipeline-workflow: # This is the name of the workflow, feel free to change it to better match your workflow.
     # Inside the workflow, you define the jobs you want to run.
     jobs:
-      # - execute_serverspec
-      # - cfn-lint
-      # - execute-cloudformation:
-      #     requires:
-      #       - cfn-lint
-      - execute-ansible
+      - cfn-lint
+      - execute-cloudformation:
+          requires:
+            - cfn-lint
+      - execute-ansible:
+          requires:
+            - execute-cloudformation
       - execute_serverspec:
           requires:
             - execute-ansible
