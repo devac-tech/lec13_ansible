@@ -74,11 +74,11 @@ jobs:
       - run:
           name: Get S3 Bucket name from CloudFormation
           command: |
-            S3_BUCKET=$(aws cloudformation describe-stacks \
+            AWS_S3_BUCKET_NAME=$(aws cloudformation describe-stacks \
               --stack-name raisetech-aws-lecture13-ci-application \
               --query "Stacks[0].Outputs[?OutputKey=='S3BucketName'].OutputValue" \
               --output text)
-            echo "export AWS_S3_BUCKET_NAME=${S3_BUCKET}" >> $BASH_ENV
+            echo "export AWS_S3_BUCKET_NAME=${AWS_S3_BUCKET_NAME}" >> $BASH_ENV
       # RDS パスワードを Secrets Manager から取得し、環境変数にセット
       - run:
           name: Get RDS password from AWS Secrets Manager
@@ -118,9 +118,8 @@ jobs:
 
   execute_serverspec:
     executor: ruby/default
-    environment:
-      TARGET_HOST: 13.230.240.229
-      AWS_S3_BUCKET_NAME: "aws-lecture13-ci-714475974411-ap-northeast-1-bucket"
+    # environment:
+    #   AWS_S3_BUCKET_NAME: "aws-lecture13-ci-714475974411-ap-northeast-1-bucket"
     steps:
       - checkout
       - ruby/install:

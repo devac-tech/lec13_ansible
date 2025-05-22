@@ -6,4 +6,3 @@
 
   roles:
     - setup_app
-    - nginx
