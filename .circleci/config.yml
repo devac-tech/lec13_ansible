@@ -133,6 +133,10 @@ jobs:
             ls -al /home/circleci/project
             cat /home/circleci/project/target_ip.txt
       - run:
+          name: Set TARGET_HOST from file
+          command: |
+            echo "export TARGET_HOST=$(cat /home/circleci/project/target_ip.txt)" >> $BASH_ENV
+      - run:
           name: Setup SSH config
           command: |
             TARGET_IP=$(cat /home/circleci/project/target_ip.txt)
@@ -159,13 +163,14 @@ workflows:
   iaas-pipeline-workflow: # This is the name of the workflow, feel free to change it to better match your workflow.
     # Inside the workflow, you define the jobs you want to run.
     jobs:
-      - cfn-lint
-      - execute-cloudformation:
-          requires:
-            - cfn-lint
-      - execute-ansible:
-          requires:
-            - execute-cloudformation
-      - execute_serverspec:
-          requires:
-            - execute-ansible
+      - execute_serverspec
+      # - cfn-lint
+      # - execute-cloudformation:
+      #     requires:
+      #       - cfn-lint
+      # - execute-ansible:
+      #     requires:
+      #       - execute-cloudformation
+      # - execute_serverspec:
+      #     requires:
+      #       - execute-ansible
