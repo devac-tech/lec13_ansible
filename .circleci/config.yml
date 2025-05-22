@@ -172,10 +172,7 @@ workflows:
       # - execute-cloudformation:
       #     requires:
       #       - cfn-lint
-      - execute-cloudformation
-      - execute-ansible:
-          requires:
-            - execute-cloudformation
+      - execute-ansible
       - execute_serverspec:
           requires:
             - execute-ansible
