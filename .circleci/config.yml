@@ -123,28 +123,25 @@ jobs:
           at: .
       - run:
           name: Setup SSH config
-          # command: |
-          #   echo -e "Host target\n    \
-          #   HostName $(cat /home/circleci/project/target_ip.txt)\n    \
-          #   IdentityFile ~/.ssh/id_rsa_aws_from_m1_win.pem\n    \
-          #   User ec2-user" >> ~/.ssh/config
-          #   cat ~/.ssh/config
           command: |
+            TARGET_IP=$(cat /home/circleci/project/target_ip.txt)
             echo -e "Host target\n\
-            HostName 13.115.140.178\n\
+            HostName ${TARGET_IP}\n\
+            IdentityFile ~/.ssh/id_rsa_aws_from_m1_win.pem\n\
             User ec2-user\n\
             StrictHostKeyChecking no\n" >> ~/.ssh/config
             cat ~/.ssh/config
+          # command: |
+          #   echo -e "Host target\n\
+          #   HostName 13.115.140.178\n\
+          #   User ec2-user\n\
+          #   StrictHostKeyChecking no\n" >> ~/.ssh/config
+          #   cat ~/.ssh/config
       - run:
           name: Install dependencies
           command: |
             cd serverspec
             bundle install
-      # - run:
-      #     name: Execute Serverspec test
-      #     command: |
-      #       cd serverspec
-      #       bundle exec rake spec
       - run:
           name: Execute Serverspec test
           command: |
