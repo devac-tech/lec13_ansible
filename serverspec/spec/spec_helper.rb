@@ -4,9 +4,6 @@ require 'net/ssh'
 # SSHバックエンド
 set :backend, :ssh
 
-# sudo
-# set :disable_sudo, false
-
 # sudo パスワード設定（必要なら）
 if ENV['ASK_SUDO_PASSWORD']
   begin
