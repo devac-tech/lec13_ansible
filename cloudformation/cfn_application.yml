@@ -14,7 +14,7 @@ Parameters:
   MyIP:
     Description: IP address allowed to access EC2
     Type: String
-    Default: "0.0.0.0/0"
+    Default: "61.125.86.147/32"
 
   TagKey:
     Description: key for cost allocation tags

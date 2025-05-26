@@ -1,7 +1,7 @@
 ---
 # nvm（Node Version Manager）がインストール済みか確認
 - name: Check nvm installed
-  shell: bash -lc "nvm -v"
+  ansible.builtin.shell: bash -lc "nvm -v"
   register: nvm_exists
   changed_when: false
   ignore_errors: true

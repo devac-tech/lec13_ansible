@@ -13,6 +13,7 @@
   become_user: root
   yum:
     name: nginx
+    state: present
 
 - name: Set nginx.conf from template
   become_user: root
