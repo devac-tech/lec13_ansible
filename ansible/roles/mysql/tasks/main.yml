@@ -18,13 +18,11 @@
   become_user: root
   shell: rpm --import "https://repo.mysql.com/RPM-GPG-KEY-mysql-2023"
 
-# MySQL本体のインストール
-- name: Install MySQL packages
+# MySQLのクライアントのみインストール
+- name: Install MySQL client only
   become_user: root
   yum:
-    name:
-      - mysql-community-server
-      - mysql-community-devel
+    name: mysql
     state: present
 
 # Railsアプリ用 database.yml をテンプレートから配置
@@ -33,10 +31,3 @@
     src: database.yml.j2
     dest: "{{ app_dir }}/config/database.yml"
   become_user: root
-
-# mysqld サービスの停止
-- name: Stop MySQL service
-  become_user: root
-  service:
-    name: mysqld
-    state: stopped
