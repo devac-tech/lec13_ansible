@@ -22,7 +22,9 @@
 - name: Install MySQL client only
   become_user: root
   yum:
-    name: mysql
+    name:
+      - mysql
+      - mysql-community-devel
     state: present
 
 # Railsアプリ用 database.yml をテンプレートから配置
