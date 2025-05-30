@@ -37,6 +37,12 @@
     name: nginx
     state: restarted
 
+- name: Enable nginx to start on boot
+  become_user: root
+  systemd:
+    name: nginx
+    enabled: yes
+
 - name: Restart puma
   become_user: root
   systemd:

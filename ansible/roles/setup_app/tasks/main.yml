@@ -38,13 +38,6 @@
   systemd:
     daemon_reload: yes
 
-# mysqld 起動
-- name: Start MySQL service
-  become_user: root
-  service:
-    name: mysqld
-    state: started
-
 # bin/setup（db:create / migrate など）
 - name: Execute bin/setup
   shell: bash -lc "bin/setup"
